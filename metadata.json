@@ -1,0 +1,9 @@
+{
+  "name": "FarmaSearch: Localizador de Medicamentos",
+  "description": "Una aplicación inteligente para encontrar medicamentos disponibles en farmacias cercanas con mapas en tiempo real, búsqueda por voz y escaneo de cajas.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

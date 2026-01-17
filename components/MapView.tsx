@@ -96,15 +96,15 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
       }
     });
 
+    const statusColors = {
+      available: { border: 'border-green-500', text: 'text-green-700', pin: 'text-green-500', label: '✓ Stock' },
+      low: { border: 'border-orange-500', text: 'text-orange-700', pin: 'text-orange-500', label: '⚠ Bajo' },
+      out: { border: 'border-red-500', text: 'text-red-700', pin: 'text-red-500', label: '✗ Agotado' }
+    };
+
     pharmacies.forEach((pharmacy) => {
       const isSelected = selectedPharmacyId === pharmacy.id;
       const pos = [pharmacy.lat, pharmacy.lng];
-
-      const statusColors = {
-        available: { border: 'border-green-500', text: 'text-green-700', pin: 'text-green-500', label: '✓ Stock' },
-        low: { border: 'border-orange-500', text: 'text-orange-700', pin: 'text-orange-500', label: '⚠ Bajo' },
-        out: { border: 'border-red-500', text: 'text-red-700', pin: 'text-red-500', label: '✗ Agotado' }
-      };
 
       const config = statusColors[pharmacy.stockStatus] || statusColors.available;
       

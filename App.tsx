@@ -5,6 +5,7 @@ import MapView from './components/MapView';
 import PharmacyBottomSheet from './components/PharmacyBottomSheet';
 import ScannerView from './components/ScannerView';
 import AccessibilityAgent from './components/AccessibilityAgent';
+import LocationErrorModal from './components/LocationErrorModal';
 import { findPharmaciesNearby, scanMedicationBox } from './services/geminiService';
 
 const RECENT_SEARCHES_KEY = 'farmaSearch_recent_v1';
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [showLocationError, setShowLocationError] = useState(false);
   
   // Initialize recent searches from localStorage
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -33,6 +35,10 @@ const App: React.FC = () => {
 
   // Initialize geolocation
   useEffect(() => {
+    requestLocation();
+  }, []);
+
+  const requestLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -40,14 +46,28 @@ const App: React.FC = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
+          setShowLocationError(false);
         },
-        () => {
-          // Fallback to Madrid if location denied for demo purposes
-          setUserLocation({ lat: 40.4168, lng: -3.7038 });
+        (err) => {
+          console.warn("Location error:", err);
+          // Show error modal instead of silent fallback
+          setShowLocationError(true);
         }
       );
+    } else {
+      setShowLocationError(true);
     }
-  }, []);
+  };
+
+  const handleManualLocation = (location: Location) => {
+    setUserLocation(location);
+    setShowLocationError(false);
+  };
+
+  const handleUseDemoLocation = () => {
+    setUserLocation({ lat: 40.4168, lng: -3.7038 });
+    setShowLocationError(false);
+  };
 
   const saveSearch = (query: string) => {
     const trimmed = query.trim();
@@ -239,6 +259,15 @@ const App: React.FC = () => {
         onClose={() => setSelectedPharmacy(null)} 
         onOpenGps={(p) => window.open(p.googleMapsUri, '_blank')}
       />
+
+      {/* LOCATION ERROR MODAL */}
+      {showLocationError && !userLocation && (
+        <LocationErrorModal
+          onRetry={requestLocation}
+          onManualLocation={handleManualLocation}
+          onUseDemoLocation={handleUseDemoLocation}
+        />
+      )}
 
       {/* Loading overlay */}
       {isSearching && view === AppView.SEARCH_RESULTS && pharmacies.length === 0 && (

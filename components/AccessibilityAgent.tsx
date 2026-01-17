@@ -18,6 +18,20 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   // Helpers for audio processing
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    const CHUNK_SIZE = 0x8000;
+    for (let i = 0; i < len; i += CHUNK_SIZE) {
+      binary += String.fromCharCode.apply(
+        null,
+        bytes.subarray(i, Math.min(i + CHUNK_SIZE, len)) as unknown as number[]
+      );
+    }
+    return btoa(binary);
+  };
+
   const decode = (base64: string) => {
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
@@ -125,7 +139,7 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
         for (let i = 0; i < inputData.length; i++) {
           int16[i] = inputData[i] * 32768;
         }
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(int16.buffer)));
+        const base64 = arrayBufferToBase64(int16.buffer);
         sessionRef.current.sendRealtimeInput({
           media: { data: base64, mimeType: 'audio/pcm;rate=16000' }
         });

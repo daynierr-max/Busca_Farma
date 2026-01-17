@@ -27,9 +27,9 @@ export const findPharmaciesNearby = async (medication: string, location: Locatio
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     
     // Map grounding chunks to our internal Pharmacy objects
+    const stockLevels: ('available' | 'low' | 'out')[] = ['available', 'low', 'available', 'available'];
     const pharmacies: Pharmacy[] = chunks.map((chunk: any, index: number) => {
       const mapsInfo = chunk.maps || {};
-      const stockLevels: ('available' | 'low' | 'out')[] = ['available', 'low', 'available', 'available'];
       
       return {
         id: `ph-${index}`,

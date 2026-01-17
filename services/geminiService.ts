@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { Location, Pharmacy } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -7,7 +7,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const findPharmaciesNearby = async (medication: string, location: Location): Promise<Pharmacy[]> => {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: `Find pharmacies near me that might have ${medication}. 
                  My location is: ${location.lat}, ${location.lng}. 
                  Provide a list of pharmacies with their names, approximate address, rating, and if they are open.`,
@@ -93,7 +93,7 @@ const getMockPharmacies = (location: Location): Pharmacy[] => {
 export const scanMedicationBox = async (base64Image: string): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: {
         parts: [
           { text: "Identify the name of the medication in this image. Return ONLY the name of the drug, no extra text." },

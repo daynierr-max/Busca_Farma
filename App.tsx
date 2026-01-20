@@ -106,10 +106,16 @@ const App: React.FC = () => {
     <div className="relative h-full flex flex-col bg-white overflow-hidden">
       {/* HEADER */}
       <header className="absolute top-0 inset-x-0 z-30 p-4 flex justify-between items-center pointer-events-none">
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
+        <button
+          aria-label="Menú principal"
+          className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform"
+        >
           <i className="fas fa-bars text-gray-700 text-xl"></i>
         </button>
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
+        <button
+          aria-label="Perfil de usuario"
+          className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform"
+        >
           <i className="fas fa-user text-gray-700 text-xl"></i>
         </button>
       </header>
@@ -137,6 +143,7 @@ const App: React.FC = () => {
           <h1 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4 ml-1">¿Qué medicamento buscas?</h1>
           <div className="relative mb-6">
             <input 
+              aria-label="Búsqueda de medicamentos"
               type="text"
               placeholder="Ej: Ibuprofeno..."
               className="w-full pl-14 pr-4 py-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-400 focus:bg-white focus:ring-0 text-xl font-medium placeholder:text-gray-300 transition-all shadow-inner"
@@ -175,6 +182,7 @@ const App: React.FC = () => {
         <div className="absolute top-20 inset-x-0 z-30 px-4 flex flex-col items-center">
           <div className="bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-2xl border-2 border-blue-100 py-4 px-6 flex items-center gap-4 w-full max-w-md">
             <button 
+              aria-label="Volver a resultados"
               onClick={() => { setView(AppView.HOME); setPharmacies([]); setSelectedPharmacy(null); }}
               className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
             >

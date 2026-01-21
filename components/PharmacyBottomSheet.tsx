@@ -42,8 +42,8 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
                 <span className="text-gray-500 text-sm ml-1">{pharmacy.rating.toFixed(1)}</span>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
-              <i className="fas fa-times text-xl"></i>
+            <button onClick={onClose} aria-label="Cerrar detalles de farmacia" className="p-2 text-gray-400 hover:text-gray-600">
+              <i className="fas fa-times text-xl" aria-hidden="true"></i>
             </button>
           </div>
 

@@ -106,11 +106,11 @@ const App: React.FC = () => {
     <div className="relative h-full flex flex-col bg-white overflow-hidden">
       {/* HEADER */}
       <header className="absolute top-0 inset-x-0 z-30 p-4 flex justify-between items-center pointer-events-none">
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
-          <i className="fas fa-bars text-gray-700 text-xl"></i>
+        <button aria-label="Menú principal" className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
+          <i className="fas fa-bars text-gray-700 text-xl" aria-hidden="true"></i>
         </button>
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
-          <i className="fas fa-user text-gray-700 text-xl"></i>
+        <button aria-label="Perfil de usuario" className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
+          <i className="fas fa-user text-gray-700 text-xl" aria-hidden="true"></i>
         </button>
       </header>
 
@@ -138,24 +138,27 @@ const App: React.FC = () => {
           <div className="relative mb-6">
             <input 
               type="text"
+              aria-label="Buscar medicamento"
               placeholder="Ej: Ibuprofeno..."
               className="w-full pl-14 pr-4 py-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-400 focus:bg-white focus:ring-0 text-xl font-medium placeholder:text-gray-300 transition-all shadow-inner"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
             />
-            <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-blue-500 text-2xl"></i>
+            <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-blue-500 text-2xl" aria-hidden="true"></i>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <button 
+              aria-label="Escanear código de barras"
               onClick={() => setView(AppView.SCAN)}
               className="flex flex-col items-center justify-center gap-2 bg-blue-50 text-blue-700 font-black py-4 rounded-2xl active:bg-blue-100 transition-all border-b-4 border-blue-200"
             >
-              <i className="fas fa-expand text-2xl"></i>
+              <i className="fas fa-expand text-2xl" aria-hidden="true"></i>
               <span className="text-xs">ESCANEAR CAJA</span>
             </button>
             <button 
+              aria-label="Búsqueda por voz"
               onClick={handleVoiceSearch}
               className={`flex flex-col items-center justify-center gap-2 font-black py-4 rounded-2xl transition-all border-b-4 ${
                 isVoiceActive 
@@ -163,7 +166,7 @@ const App: React.FC = () => {
                 : 'bg-gray-100 text-gray-700 active:bg-gray-200 border-gray-300'
               }`}
             >
-              <i className={`fas ${isVoiceActive ? 'fa-waveform' : 'fa-microphone'} text-2xl`}></i>
+              <i className={`fas ${isVoiceActive ? 'fa-waveform' : 'fa-microphone'} text-2xl`} aria-hidden="true"></i>
               <span className="text-xs uppercase">{isVoiceActive ? 'Escuchando...' : 'Búsqueda Voz'}</span>
             </button>
           </div>
@@ -175,10 +178,11 @@ const App: React.FC = () => {
         <div className="absolute top-20 inset-x-0 z-30 px-4 flex flex-col items-center">
           <div className="bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-2xl border-2 border-blue-100 py-4 px-6 flex items-center gap-4 w-full max-w-md">
             <button 
+              aria-label="Volver al inicio"
               onClick={() => { setView(AppView.HOME); setPharmacies([]); setSelectedPharmacy(null); }}
               className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
             >
-              <i className="fas fa-arrow-left text-lg"></i>
+              <i className="fas fa-arrow-left text-lg" aria-hidden="true"></i>
             </button>
             <div className="flex-1">
               <span className="text-[10px] text-blue-500 block uppercase font-black tracking-tighter">Buscando stock de</span>
@@ -204,7 +208,7 @@ const App: React.FC = () => {
                 onClick={() => handleSearch(term)}
                 className="whitespace-nowrap bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg border border-gray-100 text-gray-800 font-bold active:scale-95 transition-all flex items-center gap-2"
               >
-                <span className="text-blue-500 text-xs">●</span> {term}
+                <span className="text-blue-500 text-xs" aria-hidden="true">●</span> {term}
               </button>
             ))}
           </div>
@@ -219,7 +223,7 @@ const App: React.FC = () => {
           }}
           className="pointer-events-auto w-full bg-red-600 text-white flex items-center justify-center gap-4 px-8 py-5 rounded-[2rem] shadow-[0_15px_30px_rgba(220,38,38,0.4)] active:scale-95 active:shadow-none transition-all font-black text-xl uppercase tracking-tighter border-b-8 border-red-800"
         >
-          <div className="bg-white text-red-600 w-10 h-10 rounded-full flex items-center justify-center animate-pulse">
+          <div className="bg-white text-red-600 w-10 h-10 rounded-full flex items-center justify-center animate-pulse" aria-hidden="true">
             <i className="fas fa-heart-pulse"></i>
           </div>
           Farmacias de Guardia

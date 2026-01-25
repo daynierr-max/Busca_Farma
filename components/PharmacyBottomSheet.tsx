@@ -35,15 +35,27 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
                   <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">24H</span>
                 )}
               </div>
-              <div className="flex items-center gap-1 text-yellow-500 mb-1">
+              <div
+                className="flex items-center gap-1 text-yellow-500 mb-1"
+                role="img"
+                aria-label={`Calificación: ${pharmacy.rating.toFixed(1)} de 5 estrellas`}
+              >
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <i key={i} className={`fas fa-star ${i < Math.floor(pharmacy.rating) ? '' : 'text-gray-200'}`} />
+                  <i
+                    key={i}
+                    className={`fas fa-star ${i < Math.floor(pharmacy.rating) ? '' : 'text-gray-200'}`}
+                    aria-hidden="true"
+                  />
                 ))}
-                <span className="text-gray-500 text-sm ml-1">{pharmacy.rating.toFixed(1)}</span>
+                <span className="text-gray-500 text-sm ml-1" aria-hidden="true">{pharmacy.rating.toFixed(1)}</span>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
-              <i className="fas fa-times text-xl"></i>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600"
+              aria-label="Cerrar detalles"
+            >
+              <i className="fas fa-times text-xl" aria-hidden="true"></i>
             </button>
           </div>
 

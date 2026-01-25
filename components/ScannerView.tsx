@@ -49,7 +49,13 @@ const ScannerView: React.FC<ScannerViewProps> = ({ onScan, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       <div className="flex items-center justify-between p-4 text-white">
-        <button onClick={onClose} className="p-2"><i className="fas fa-xmark text-xl"></i></button>
+        <button
+          onClick={onClose}
+          className="p-2"
+          aria-label="Cerrar escáner"
+        >
+          <i className="fas fa-xmark text-xl" aria-hidden="true"></i>
+        </button>
         <span className="font-medium text-lg">Escanear Caja</span>
         <div className="w-10"></div>
       </div>
@@ -74,6 +80,7 @@ const ScannerView: React.FC<ScannerViewProps> = ({ onScan, onClose }) => {
         <button 
           onClick={captureImage}
           className="w-20 h-20 rounded-full border-4 border-white p-1 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          aria-label="Tomar foto"
         >
           <div className="w-full h-full bg-white rounded-full"></div>
         </button>

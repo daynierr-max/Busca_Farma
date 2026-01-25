@@ -106,11 +106,17 @@ const App: React.FC = () => {
     <div className="relative h-full flex flex-col bg-white overflow-hidden">
       {/* HEADER */}
       <header className="absolute top-0 inset-x-0 z-30 p-4 flex justify-between items-center pointer-events-none">
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
-          <i className="fas fa-bars text-gray-700 text-xl"></i>
+        <button
+          aria-label="Menú principal"
+          className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform"
+        >
+          <i className="fas fa-bars text-gray-700 text-xl" aria-hidden="true"></i>
         </button>
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
-          <i className="fas fa-user text-gray-700 text-xl"></i>
+        <button
+          aria-label="Perfil de usuario"
+          className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform"
+        >
+          <i className="fas fa-user text-gray-700 text-xl" aria-hidden="true"></i>
         </button>
       </header>
 
@@ -176,9 +182,10 @@ const App: React.FC = () => {
           <div className="bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-2xl border-2 border-blue-100 py-4 px-6 flex items-center gap-4 w-full max-w-md">
             <button 
               onClick={() => { setView(AppView.HOME); setPharmacies([]); setSelectedPharmacy(null); }}
+              aria-label="Volver"
               className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
             >
-              <i className="fas fa-arrow-left text-lg"></i>
+              <i className="fas fa-arrow-left text-lg" aria-hidden="true"></i>
             </button>
             <div className="flex-1">
               <span className="text-[10px] text-blue-500 block uppercase font-black tracking-tighter">Buscando stock de</span>

@@ -24,7 +24,11 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
       <div 
         className="pointer-events-auto bg-white rounded-t-3xl shadow-[0_-10px_30px_rgba(0,0,0,0.15)] bottom-sheet max-h-[85vh] overflow-y-auto"
       >
-        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3" onClick={onClose} />
+        <button
+          className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 block hover:bg-gray-300 transition-colors cursor-pointer"
+          onClick={onClose}
+          aria-label="Cerrar panel"
+        />
         
         <div className="px-6 pb-8">
           <div className="flex justify-between items-start mb-2">
@@ -37,13 +41,13 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
               </div>
               <div className="flex items-center gap-1 text-yellow-500 mb-1">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <i key={i} className={`fas fa-star ${i < Math.floor(pharmacy.rating) ? '' : 'text-gray-200'}`} />
+                  <i key={i} aria-hidden="true" className={`fas fa-star ${i < Math.floor(pharmacy.rating) ? '' : 'text-gray-200'}`} />
                 ))}
                 <span className="text-gray-500 text-sm ml-1">{pharmacy.rating.toFixed(1)}</span>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
-              <i className="fas fa-times text-xl"></i>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600" aria-label="Cerrar detalles de farmacia">
+              <i className="fas fa-times text-xl" aria-hidden="true"></i>
             </button>
           </div>
 

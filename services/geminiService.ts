@@ -2,11 +2,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Location, Pharmacy } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY || 'dummy_key' });
 
 export const findPharmaciesNearby = async (medication: string, location: Location): Promise<Pharmacy[]> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Find pharmacies near me that might have ${medication}. 
                  My location is: ${location.lat}, ${location.lng}. 
@@ -92,7 +92,7 @@ const getMockPharmacies = (location: Location): Pharmacy[] => {
 
 export const scanMedicationBox = async (base64Image: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: {
         parts: [

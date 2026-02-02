@@ -106,11 +106,17 @@ const App: React.FC = () => {
     <div className="relative h-full flex flex-col bg-white overflow-hidden">
       {/* HEADER */}
       <header className="absolute top-0 inset-x-0 z-30 p-4 flex justify-between items-center pointer-events-none">
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
-          <i className="fas fa-bars text-gray-700 text-xl"></i>
+        <button
+          aria-label="Menú principal"
+          className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform"
+        >
+          <i className="fas fa-bars text-gray-700 text-xl" aria-hidden="true"></i>
         </button>
-        <button className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform">
-          <i className="fas fa-user text-gray-700 text-xl"></i>
+        <button
+          aria-label="Perfil de usuario"
+          className="bg-white/90 backdrop-blur w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-gray-100 pointer-events-auto active:scale-95 transition-transform"
+        >
+          <i className="fas fa-user text-gray-700 text-xl" aria-hidden="true"></i>
         </button>
       </header>
 
@@ -138,13 +144,14 @@ const App: React.FC = () => {
           <div className="relative mb-6">
             <input 
               type="text"
+              aria-label="Buscar medicamento"
               placeholder="Ej: Ibuprofeno..."
               className="w-full pl-14 pr-4 py-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-400 focus:bg-white focus:ring-0 text-xl font-medium placeholder:text-gray-300 transition-all shadow-inner"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
             />
-            <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-blue-500 text-2xl"></i>
+            <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-blue-500 text-2xl" aria-hidden="true"></i>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -176,9 +183,10 @@ const App: React.FC = () => {
           <div className="bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-2xl border-2 border-blue-100 py-4 px-6 flex items-center gap-4 w-full max-w-md">
             <button 
               onClick={() => { setView(AppView.HOME); setPharmacies([]); setSelectedPharmacy(null); }}
+              aria-label="Volver a inicio"
               className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
             >
-              <i className="fas fa-arrow-left text-lg"></i>
+              <i className="fas fa-arrow-left text-lg" aria-hidden="true"></i>
             </button>
             <div className="flex-1">
               <span className="text-[10px] text-blue-500 block uppercase font-black tracking-tighter">Buscando stock de</span>

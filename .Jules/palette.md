@@ -1,0 +1,3 @@
+## 2025-05-23 - Accessibility First: Icon-Only Buttons
+**Learning:** Icon-only buttons are a common pattern in this app for maximizing screen real estate (headers, maps, floating actions). However, without `aria-label`, screen readers only announce "button" or the icon class name, making navigation impossible for visually impaired users.
+**Action:** Always pair icon-only buttons with an explicit `aria-label` describing the action, and use `aria-hidden="true"` on the icon itself to prevent redundant announcements. For complex visuals like star ratings, use a container with `role="img"` and a summary label.

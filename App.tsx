@@ -139,7 +139,7 @@ const App: React.FC = () => {
             <input 
               type="text"
               placeholder="Ej: Ibuprofeno..."
-              className="w-full pl-14 pr-4 py-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-400 focus:bg-white focus:ring-0 text-xl font-medium placeholder:text-gray-300 transition-all shadow-inner"
+              className="w-full pl-14 pr-4 py-5 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-blue-400 focus:bg-white focus:ring-0 text-xl font-medium text-gray-900 placeholder:text-gray-300 transition-all shadow-inner"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}

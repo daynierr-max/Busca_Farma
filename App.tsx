@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppView, Location, Pharmacy } from './types';
 import MapView from './components/MapView';
 import PharmacyBottomSheet from './components/PharmacyBottomSheet';
@@ -49,7 +49,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const saveSearch = (query: string) => {
+  const saveSearch = useCallback((query: string) => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
@@ -60,9 +60,9 @@ const App: React.FC = () => {
       localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = useCallback(async (query: string) => {
     if (!query.trim() || !userLocation) return;
     
     saveSearch(query);
@@ -73,7 +73,7 @@ const App: React.FC = () => {
     const results = await findPharmaciesNearby(query, userLocation);
     setPharmacies(results);
     setIsSearching(false);
-  };
+  }, [userLocation, saveSearch]);
 
   const handleVoiceSearch = () => {
     setIsVoiceActive(true);

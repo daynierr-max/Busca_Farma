@@ -16,6 +16,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
+  const markerStateRef = useRef<Map<string, any>>(new Map());
   const userMarkerRef = useRef<any>(null);
 
   // Initialize Map
@@ -93,6 +94,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
       if (!currentIds.has(id)) {
         marker.remove();
         markersRef.current.delete(id);
+        markerStateRef.current.delete(id);
       }
     });
 
@@ -100,49 +102,74 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
       const isSelected = selectedPharmacyId === pharmacy.id;
       const pos = [pharmacy.lat, pharmacy.lng];
 
-      const statusColors = {
-        available: { border: 'border-green-500', text: 'text-green-700', pin: 'text-green-500', label: '✓ Stock' },
-        low: { border: 'border-orange-500', text: 'text-orange-700', pin: 'text-orange-500', label: '⚠ Bajo' },
-        out: { border: 'border-red-500', text: 'text-red-700', pin: 'text-red-500', label: '✗ Agotado' }
+      const newState = {
+        isSelected,
+        stockStatus: pharmacy.stockStatus,
+        is24h: pharmacy.is24h,
+        lat: pharmacy.lat,
+        lng: pharmacy.lng
       };
 
-      const config = statusColors[pharmacy.stockStatus] || statusColors.available;
+      const currentState = markerStateRef.current.get(pharmacy.id);
+      let marker = markersRef.current.get(pharmacy.id);
       
-      // Animation logic
-      const selectionClass = isSelected ? 'marker-selected' : 'scale-100';
+      const shouldUpdateIcon = !marker || !currentState ||
+            currentState.isSelected !== newState.isSelected ||
+            currentState.stockStatus !== newState.stockStatus ||
+            currentState.is24h !== newState.is24h;
 
-      const iconHtml = `
-        <div class="flex flex-col items-center transition-all duration-300 ${selectionClass}">
-          <div class="flex items-center space-x-1 mb-1 px-2 py-0.5 rounded-full text-[10px] font-black shadow-md whitespace-nowrap bg-white border-2 ${config.border} ${config.text}">
-            ${pharmacy.is24h ? '<span class="bg-red-500 text-white px-1 rounded-sm text-[8px] font-bold">24H</span>' : ''}
-            <span>${config.label}</span>
-          </div>
-          <div class="relative ${isSelected ? 'text-blue-700' : config.pin}">
-            <i class="fas fa-location-dot text-4xl drop-shadow-lg"></i>
-            <div class="absolute top-[25%] left-1/2 -translate-x-1/2 w-2 h-2 bg-white rounded-full shadow-inner opacity-80"></div>
-          </div>
-          ${isSelected ? '<div class="w-2 h-1 bg-black/10 rounded-full blur-[2px] mt-[-2px]"></div>' : ''}
-        </div>
-      `;
-
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: iconHtml,
-        iconSize: [80, 75],
-        iconAnchor: [40, 75]
-      });
-
-      if (markersRef.current.has(pharmacy.id)) {
-        const marker = markersRef.current.get(pharmacy.id);
-        marker.setLatLng(pos);
-        marker.setIcon(icon);
-        marker.setZIndexOffset(isSelected ? 500 : 0);
-      } else {
-        const marker = L.marker(pos, { icon })
+      if (!marker) {
+        // Create marker without icon first (will be set below)
+        // Note: L.marker requires an icon or uses default. We'll set it immediately.
+        // We use a temporary dummy icon or just rely on setIcon immediately after.
+        // Actually, let's just pass the icon if we are creating it, but that duplicates code.
+        // We can create marker with default options and then setIcon.
+        marker = L.marker(pos)
           .addTo(mapRef.current)
           .on('click', () => onPharmacySelect(pharmacy));
         markersRef.current.set(pharmacy.id, marker);
+      } else {
+        if (!currentState || currentState.lat !== newState.lat || currentState.lng !== newState.lng) {
+          marker.setLatLng(pos);
+        }
       }
+
+      if (shouldUpdateIcon) {
+        const statusColors = {
+          available: { border: 'border-green-500', text: 'text-green-700', pin: 'text-green-500', label: '✓ Stock' },
+          low: { border: 'border-orange-500', text: 'text-orange-700', pin: 'text-orange-500', label: '⚠ Bajo' },
+          out: { border: 'border-red-500', text: 'text-red-700', pin: 'text-red-500', label: '✗ Agotado' }
+        };
+
+        const config = statusColors[pharmacy.stockStatus] || statusColors.available;
+        const selectionClass = isSelected ? 'marker-selected' : 'scale-100';
+
+        const iconHtml = `
+          <div class="flex flex-col items-center transition-all duration-300 ${selectionClass}">
+            <div class="flex items-center space-x-1 mb-1 px-2 py-0.5 rounded-full text-[10px] font-black shadow-md whitespace-nowrap bg-white border-2 ${config.border} ${config.text}">
+              ${pharmacy.is24h ? '<span class="bg-red-500 text-white px-1 rounded-sm text-[8px] font-bold">24H</span>' : ''}
+              <span>${config.label}</span>
+            </div>
+            <div class="relative ${isSelected ? 'text-blue-700' : config.pin}">
+              <i class="fas fa-location-dot text-4xl drop-shadow-lg"></i>
+              <div class="absolute top-[25%] left-1/2 -translate-x-1/2 w-2 h-2 bg-white rounded-full shadow-inner opacity-80"></div>
+            </div>
+            ${isSelected ? '<div class="w-2 h-1 bg-black/10 rounded-full blur-[2px] mt-[-2px]"></div>' : ''}
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          className: 'custom-div-icon',
+          html: iconHtml,
+          iconSize: [80, 75],
+          iconAnchor: [40, 75]
+        });
+
+        marker.setIcon(icon);
+        marker.setZIndexOffset(isSelected ? 500 : 0);
+      }
+
+      markerStateRef.current.set(pharmacy.id, newState);
     });
 
     // Fit bounds considering both pharmacies AND user location

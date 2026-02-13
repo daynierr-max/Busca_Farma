@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { Pharmacy } from '../types';
@@ -9,13 +8,60 @@ interface AccessibilityAgentProps {
   isSearching: boolean;
 }
 
+const AUDIO_WORKLET_CODE = `
+class PCMProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.bufferSize = 4096;
+    this.buffer = new Float32Array(this.bufferSize);
+    this.bytesWritten = 0;
+  }
+
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (input.length > 0) {
+      const float32 = input[0];
+      // Buffer the input data (blocks of 128 frames)
+      // 4096 is a multiple of 128 (32 blocks), so we don't need complex ring buffering
+      if (this.bytesWritten + float32.length <= this.bufferSize) {
+        this.buffer.set(float32, this.bytesWritten);
+        this.bytesWritten += float32.length;
+      }
+
+      // If buffer is full, process and send
+      if (this.bytesWritten >= this.bufferSize) {
+        const int16 = new Int16Array(this.bufferSize);
+        for (let i = 0; i < this.bufferSize; i++) {
+          int16[i] = this.buffer[i] * 32768;
+        }
+
+        // Post message with transferable ownership
+        this.port.postMessage(int16.buffer, [int16.buffer]);
+
+        // Reset buffer index
+        this.bytesWritten = 0;
+      }
+    }
+    return true;
+  }
+}
+
+registerProcessor('pcm-processor', PCMProcessor);
+`;
+
 const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharmacies, isSearching }) => {
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const sessionRef = useRef<any>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null); // For playback
+  const micContextRef = useRef<AudioContext | null>(null);   // For microphone
+  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+
+  // Keep track of active state in ref for callbacks
+  const isActiveRef = useRef(false);
+  useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
 
   // Helpers for audio processing
   const decode = (base64: string) => {
@@ -37,6 +83,17 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
     return buffer;
   };
 
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    const chunkSize = 0x8000; // 32KB chunks
+    for (let i = 0; i < len; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize) as any);
+    }
+    return btoa(binary);
+  };
+
   const stopAllAudio = () => {
     sourcesRef.current.forEach(source => {
       try { source.stop(); } catch(e) {}
@@ -45,11 +102,23 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
     nextStartTimeRef.current = 0;
   };
 
+  const cleanupMic = () => {
+     if (workletNodeRef.current) {
+        workletNodeRef.current.disconnect();
+        workletNodeRef.current = null;
+     }
+     if (micContextRef.current) {
+        micContextRef.current.close();
+        micContextRef.current = null;
+     }
+  };
+
   const toggleAssistant = async () => {
     if (isActive) {
       if (sessionRef.current) sessionRef.current.close();
       setIsActive(false);
       stopAllAudio();
+      cleanupMic();
       return;
     }
 
@@ -102,10 +171,14 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
               stopAllAudio();
             }
           },
-          onclose: () => setIsActive(false),
+          onclose: () => {
+             setIsActive(false);
+             cleanupMic();
+          },
           onerror: (e) => {
             console.error(e);
             setIsActive(false);
+            cleanupMic();
           }
         }
       });
@@ -114,29 +187,36 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
       
       // Setup Mic streaming
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioCtx = new AudioContext({ sampleRate: 16000 });
-      const source = audioCtx.createMediaStreamSource(stream);
-      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+      micContextRef.current = new AudioContext({ sampleRate: 16000 });
+      const source = micContextRef.current.createMediaStreamSource(stream);
       
-      processor.onaudioprocess = (e) => {
-        if (!isActive) return;
-        const inputData = e.inputBuffer.getChannelData(0);
-        const int16 = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          int16[i] = inputData[i] * 32768;
-        }
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(int16.buffer)));
+      const blob = new Blob([AUDIO_WORKLET_CODE], { type: 'application/javascript' });
+      const workletUrl = URL.createObjectURL(blob);
+
+      await micContextRef.current.audioWorklet.addModule(workletUrl);
+      URL.revokeObjectURL(workletUrl); // Clean up the URL
+
+      const workletNode = new AudioWorkletNode(micContextRef.current, 'pcm-processor');
+      workletNodeRef.current = workletNode;
+
+      workletNode.port.onmessage = (event) => {
+        if (!isActiveRef.current || !sessionRef.current) return;
+
+        const int16Buffer = event.data;
+        const base64 = arrayBufferToBase64(int16Buffer);
+
         sessionRef.current.sendRealtimeInput({
           media: { data: base64, mimeType: 'audio/pcm;rate=16000' }
         });
       };
 
-      source.connect(processor);
-      processor.connect(audioCtx.destination);
+      source.connect(workletNode);
+      workletNode.connect(micContextRef.current.destination);
 
     } catch (err) {
       console.error(err);
       setIsConnecting(false);
+      cleanupMic();
     }
   };
 

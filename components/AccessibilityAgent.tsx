@@ -18,13 +18,10 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   // Helpers for audio processing
-  const decode = (base64: string) => {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
+  const decode = async (base64: string): Promise<Uint8Array> => {
+    const response = await fetch(`data:application/octet-stream;base64,${base64}`);
+    const buffer = await response.arrayBuffer();
+    return new Uint8Array(buffer);
   };
 
   const decodeAudioData = async (data: Uint8Array, ctx: AudioContext): Promise<AudioBuffer> => {
@@ -85,7 +82,8 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
           onmessage: async (message: LiveServerMessage) => {
             const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (audioData && audioContextRef.current) {
-              const buffer = await decodeAudioData(decode(audioData), audioContextRef.current);
+              const decodedData = await decode(audioData);
+              const buffer = await decodeAudioData(decodedData, audioContextRef.current);
               const source = audioContextRef.current.createBufferSource();
               source.buffer = buffer;
               source.connect(audioContextRef.current.destination);

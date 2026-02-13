@@ -144,8 +144,13 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
   useEffect(() => {
     if (isActive && pharmacies.length > 0 && !isSearching) {
       const text = `He encontrado ${pharmacies.length} farmacias. La más cercana es ${pharmacies[0].name}, está a ${pharmacies[0].distance} y el stock está ${pharmacies[0].stockStatus === 'available' ? 'disponible' : 'bajo'}. ¿Quieres que te guíe o prefieres llamar?`;
-      // In a real Live API scenario, we could send this text to be spoken
-      // For this demo, we assume the model handles the conversation via the audio stream
+
+      if (sessionRef.current) {
+        sessionRef.current.sendClientContent({
+          turns: [{ role: 'user', parts: [{ text: `Please announce the following: "${text}"` }] }],
+          turnComplete: true
+        });
+      }
     }
   }, [pharmacies, isActive, isSearching]);
 

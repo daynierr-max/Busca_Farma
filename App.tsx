@@ -4,6 +4,7 @@ import { AppView, Location, Pharmacy } from './types';
 import MapView from './components/MapView';
 import PharmacyBottomSheet from './components/PharmacyBottomSheet';
 import ScannerView from './components/ScannerView';
+import ManualLocationPrompt from './components/ManualLocationPrompt';
 import AccessibilityAgent from './components/AccessibilityAgent';
 import { findPharmaciesNearby, scanMedicationBox } from './services/geminiService';
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   
   // Initialize recent searches from localStorage
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -42,10 +44,12 @@ const App: React.FC = () => {
           });
         },
         () => {
-          // Fallback to Madrid if location denied for demo purposes
-          setUserLocation({ lat: 40.4168, lng: -3.7038 });
+          // If location is denied or fails, prompt the user
+          setShowLocationPrompt(true);
         }
       );
+    } else {
+      setShowLocationPrompt(true);
     }
   }, []);
 
@@ -239,6 +243,16 @@ const App: React.FC = () => {
         onClose={() => setSelectedPharmacy(null)} 
         onOpenGps={(p) => window.open(p.googleMapsUri, '_blank')}
       />
+
+      {/* Location Prompt */}
+      {showLocationPrompt && !userLocation && (
+        <ManualLocationPrompt
+          onLocationSelect={(location) => {
+            setUserLocation(location);
+            setShowLocationPrompt(false);
+          }}
+        />
+      )}
 
       {/* Loading overlay */}
       {isSearching && view === AppView.SEARCH_RESULTS && pharmacies.length === 0 && (

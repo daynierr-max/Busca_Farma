@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
+import { Modality, LiveServerMessage } from '@google/genai';
 import { Pharmacy } from '../types';
+import { MODELS, getAi } from '../services/geminiService';
 
 interface AccessibilityAgentProps {
   onSearch: (query: string) => void;
@@ -12,10 +13,16 @@ interface AccessibilityAgentProps {
 const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharmacies, isSearching }) => {
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const sessionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const isActiveRef = useRef(false);
+  // Set when the user turns the assistant off, so that close isn't reported as an error
+  const closingRef = useRef(false);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micContextRef = useRef<AudioContext | null>(null);
 
   // Helpers for audio processing
   const decode = (base64: string) => {
@@ -45,24 +52,67 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
     nextStartTimeRef.current = 0;
   };
 
+  // Release the microphone so it doesn't keep recording after the assistant is closed
+  const stopMic = () => {
+    micStreamRef.current?.getTracks().forEach(track => track.stop());
+    micStreamRef.current = null;
+    micContextRef.current?.close().catch(() => {});
+    micContextRef.current = null;
+  };
+
+  const deactivate = () => {
+    isActiveRef.current = false;
+    setIsActive(false);
+    setIsConnecting(false);
+    stopMic();
+  };
+
+  const fail = (err: unknown) => {
+    console.error(err);
+    closingRef.current = true;
+    sessionRef.current?.close();
+    sessionRef.current = null;
+    deactivate();
+    stopAllAudio();
+    setError('No se pudo conectar con FarmaVoz. Inténtalo de nuevo.');
+  };
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  useEffect(() => () => {
+    closingRef.current = true;
+    sessionRef.current?.close();
+    stopMic();
+  }, []);
+
   const toggleAssistant = async () => {
+    if (isConnecting) return;
     if (isActive) {
+      closingRef.current = true;
       if (sessionRef.current) sessionRef.current.close();
-      setIsActive(false);
+      sessionRef.current = null;
+      deactivate();
       stopAllAudio();
       return;
     }
 
+    setError(null);
+    closingRef.current = false;
     setIsConnecting(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    }
 
     try {
+      // Inside the try: the client throws synchronously when no API key is configured
+      const ai = getAi();
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
+
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+        model: MODELS.live,
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -79,6 +129,7 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
         callbacks: {
           onopen: () => {
             setIsConnecting(false);
+            isActiveRef.current = true;
             setIsActive(true);
             console.log("Conectado a FarmaVoz");
           },
@@ -102,11 +153,14 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
               stopAllAudio();
             }
           },
-          onclose: () => setIsActive(false),
-          onerror: (e) => {
-            console.error(e);
-            setIsActive(false);
-          }
+          onclose: () => {
+            if (closingRef.current) {
+              deactivate();
+            } else {
+              fail(new Error('FarmaVoz connection closed unexpectedly'));
+            }
+          },
+          onerror: (e) => fail(e)
         }
       });
 
@@ -115,18 +169,20 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
       // Setup Mic streaming
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioCtx = new AudioContext({ sampleRate: 16000 });
+      micStreamRef.current = stream;
+      micContextRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
       
       processor.onaudioprocess = (e) => {
-        if (!isActive) return;
+        if (!isActiveRef.current) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const int16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
           int16[i] = inputData[i] * 32768;
         }
         const base64 = btoa(String.fromCharCode(...new Uint8Array(int16.buffer)));
-        sessionRef.current.sendRealtimeInput({
+        sessionRef.current?.sendRealtimeInput({
           media: { data: base64, mimeType: 'audio/pcm;rate=16000' }
         });
       };
@@ -135,8 +191,7 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
       processor.connect(audioCtx.destination);
 
     } catch (err) {
-      console.error(err);
-      setIsConnecting(false);
+      fail(err);
     }
   };
 
@@ -150,10 +205,10 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
   }, [pharmacies, isActive, isSearching]);
 
   return (
-    <div className="fixed top-20 right-4 z-50 flex flex-col items-end gap-3">
+    <div className="fixed top-4 right-[4.75rem] z-50 flex flex-col items-end gap-3">
       <button
         onClick={toggleAssistant}
-        className={`group relative flex items-center justify-center w-16 h-16 rounded-full shadow-2xl transition-all duration-500 border-4 ${
+        className={`group relative flex items-center justify-center w-12 h-12 rounded-full shadow-2xl transition-all duration-500 border-4 ${
           isActive 
             ? 'bg-yellow-400 border-black scale-110' 
             : 'bg-white border-blue-500 hover:scale-105'
@@ -161,9 +216,9 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
         aria-label="Asistente de voz para personas con visión reducida"
       >
         {isConnecting ? (
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         ) : (
-          <i className={`fas ${isActive ? 'fa-ear-listen text-black' : 'fa-eye-low-vision text-blue-600'} text-2xl`}></i>
+          <i className={`fas ${isActive ? 'fa-ear-listen text-black' : 'fa-eye-low-vision text-blue-600'} text-xl`} aria-hidden="true"></i>
         )}
         
         {isActive && (
@@ -174,6 +229,12 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
         )}
       </button>
       
+      {error && (
+        <div role="alert" className="bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg max-w-[14rem] text-right">
+          {error}
+        </div>
+      )}
+
       {isActive && (
         <div className="bg-black text-yellow-400 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter shadow-lg animate-bounce">
           FarmaVoz Activo: Habla ahora

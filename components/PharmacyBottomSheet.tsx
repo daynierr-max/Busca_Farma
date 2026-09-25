@@ -42,7 +42,7 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
                 <span className="text-gray-500 text-sm ml-1">{pharmacy.rating.toFixed(1)}</span>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+            <button onClick={onClose} aria-label="Cerrar detalles" className="p-2 text-gray-400 hover:text-gray-600">
               <i className="fas fa-times text-xl"></i>
             </button>
           </div>
@@ -66,8 +66,9 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
 
           <div className="grid gap-3">
             <a 
-              href={`https://wa.me/${pharmacy.whatsapp}?text=Hola, ¿tienen stock de este medicamento?`}
+              href={`https://wa.me/${pharmacy.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, ¿tienen stock de este medicamento?')}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="bg-[#25D366] text-white py-4 px-6 rounded-2xl flex items-center justify-center gap-3 font-bold text-lg shadow-lg active:scale-[0.98] transition-all"
             >
               <i className="fab fa-whatsapp text-2xl"></i>
@@ -76,7 +77,7 @@ const PharmacyBottomSheet: React.FC<PharmacyBottomSheetProps> = ({ pharmacy, onC
 
             <div className="grid grid-cols-2 gap-3">
               <a 
-                href={`tel:${pharmacy.phone}`}
+                href={`tel:${pharmacy.phone.replace(/[^+\d]/g, '')}`}
                 className="bg-gray-100 text-gray-800 py-4 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold active:bg-gray-200 transition-all border border-gray-200"
               >
                 <i className="fas fa-phone"></i>

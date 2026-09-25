@@ -1,9 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
+import L from 'leaflet';
 import { Location, Pharmacy } from '../types';
-
-// Declare Leaflet global since it's loaded via script tag
-declare const L: any;
 
 interface MapViewProps {
   userLocation: Location | null;
@@ -14,15 +12,15 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacySelect, selectedPharmacyId }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<Map<string, any>>(new Map());
-  const userMarkerRef = useRef<any>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const userMarkerRef = useRef<L.Marker | null>(null);
 
   // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const initialPos = userLocation ? [userLocation.lat, userLocation.lng] : [40.4168, -3.7038];
+    const initialPos: L.LatLngTuple = userLocation ? [userLocation.lat, userLocation.lng] : [40.4168, -3.7038];
     
     mapRef.current = L.map(mapContainerRef.current, {
       zoomControl: false,
@@ -38,6 +36,9 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
         mapRef.current.remove();
         mapRef.current = null;
       }
+      // Markers belonged to the removed map; forget them so they're recreated on remount
+      markersRef.current.clear();
+      userMarkerRef.current = null;
     };
   }, []);
 
@@ -45,7 +46,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
   useEffect(() => {
     if (!mapRef.current || !userLocation) return;
 
-    const pos = [userLocation.lat, userLocation.lng];
+    const pos: L.LatLngTuple = [userLocation.lat, userLocation.lng];
     
     if (!userMarkerRef.current) {
       const userIcon = L.divIcon({
@@ -77,7 +78,12 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
 
     const selectedPharmacy = pharmacies.find(p => p.id === selectedPharmacyId);
     if (selectedPharmacy) {
-      mapRef.current.flyTo([selectedPharmacy.lat, selectedPharmacy.lng], 17, {
+      const map = mapRef.current;
+      const zoom = 17;
+      // Centre below the marker so it stays visible above the details sheet
+      const markerPoint = map.project([selectedPharmacy.lat, selectedPharmacy.lng], zoom);
+      const center = map.unproject(markerPoint.add([0, map.getSize().y * 0.1]), zoom);
+      map.flyTo(center, zoom, {
         animate: true,
         duration: 0.8
       });
@@ -98,7 +104,7 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
 
     pharmacies.forEach((pharmacy) => {
       const isSelected = selectedPharmacyId === pharmacy.id;
-      const pos = [pharmacy.lat, pharmacy.lng];
+      const pos: L.LatLngTuple = [pharmacy.lat, pharmacy.lng];
 
       const statusColors = {
         available: { border: 'border-green-500', text: 'text-green-700', pin: 'text-green-500', label: '✓ Stock' },
@@ -132,14 +138,16 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
         iconAnchor: [40, 75]
       });
 
-      if (markersRef.current.has(pharmacy.id)) {
-        const marker = markersRef.current.get(pharmacy.id);
-        marker.setLatLng(pos);
-        marker.setIcon(icon);
-        marker.setZIndexOffset(isSelected ? 500 : 0);
+      const existing = markersRef.current.get(pharmacy.id);
+      if (existing) {
+        existing.setLatLng(pos);
+        existing.setIcon(icon);
+        existing.setZIndexOffset(isSelected ? 500 : 0);
+        // Rebind so the click selects this search's pharmacy, not one from a previous search with the same id
+        existing.off('click').on('click', () => onPharmacySelect(pharmacy));
       } else {
-        const marker = L.marker(pos, { icon })
-          .addTo(mapRef.current)
+        const marker = L.marker(pos, { icon, keyboard: true, title: pharmacy.name, alt: pharmacy.name })
+          .addTo(mapRef.current!)
           .on('click', () => onPharmacySelect(pharmacy));
         markersRef.current.set(pharmacy.id, marker);
       }
@@ -147,18 +155,20 @@ const MapView: React.FC<MapViewProps> = ({ userLocation, pharmacies, onPharmacyS
 
     // Fit bounds considering both pharmacies AND user location
     if (pharmacies.length > 0 && !selectedPharmacyId) {
-      const bounds = L.latLngBounds(pharmacies.map(p => [p.lat, p.lng]));
+      const bounds = L.latLngBounds(pharmacies.map((p): L.LatLngTuple => [p.lat, p.lng]));
       
       if (userLocation) {
         bounds.extend([userLocation.lat, userLocation.lng]);
       }
 
       mapRef.current.fitBounds(bounds, {
-        padding: [60, 100], // Horizontal/Vertical padding to avoid edge clipping
+        // Keep markers (75px tall) clear of the results header on top and the SOS button below
+        paddingTopLeft: [60, 250],
+        paddingBottomRight: [60, 150],
         maxZoom: 16,        // Avoid excessive zoom-in if markers are very close to each other
         animate: true,
         duration: 1
-      });
+      } as L.FitBoundsOptions);
     }
   }, [pharmacies, selectedPharmacyId, onPharmacySelect, userLocation]);
 

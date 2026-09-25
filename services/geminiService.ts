@@ -2,7 +2,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Location, Pharmacy } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Created lazily so a missing API key doesn't crash the whole app on load
+let ai: GoogleGenAI | null = null;
+const getAi = () => {
+  if (!ai) ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return ai;
+};
 
 /**
  * Intenta extraer coordenadas de una URL de Google Maps
@@ -23,7 +28,7 @@ const extractCoordsFromUri = (uri: string): { lat: number, lng: number } | null 
 
 export const findPharmaciesNearby = async (medication: string, location: Location): Promise<Pharmacy[]> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Busca farmacias cerca de mi ubicación actual que puedan tener stock de ${medication}. 
                  Mi ubicación es: ${location.lat}, ${location.lng}. 
@@ -122,7 +127,7 @@ const getMockPharmacies = (location: Location): Pharmacy[] => {
 
 export const scanMedicationBox = async (base64Image: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: {
         parts: [
@@ -131,7 +136,7 @@ export const scanMedicationBox = async (base64Image: string): Promise<string> =>
         ]
       }
     });
-    return response.text.trim();
+    return (response.text ?? "").trim();
   } catch (error) {
     console.error("Error scanning box:", error);
     return "";

@@ -16,6 +16,9 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const isActiveRef = useRef(false);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micContextRef = useRef<AudioContext | null>(null);
 
   // Helpers for audio processing
   const decode = (base64: string) => {
@@ -45,10 +48,29 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
     nextStartTimeRef.current = 0;
   };
 
+  // Release the microphone so it doesn't keep recording after the assistant is closed
+  const stopMic = () => {
+    micStreamRef.current?.getTracks().forEach(track => track.stop());
+    micStreamRef.current = null;
+    micContextRef.current?.close().catch(() => {});
+    micContextRef.current = null;
+  };
+
+  const deactivate = () => {
+    isActiveRef.current = false;
+    setIsActive(false);
+    stopMic();
+  };
+
+  useEffect(() => () => {
+    sessionRef.current?.close();
+    stopMic();
+  }, []);
+
   const toggleAssistant = async () => {
     if (isActive) {
       if (sessionRef.current) sessionRef.current.close();
-      setIsActive(false);
+      deactivate();
       stopAllAudio();
       return;
     }
@@ -79,6 +101,7 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
         callbacks: {
           onopen: () => {
             setIsConnecting(false);
+            isActiveRef.current = true;
             setIsActive(true);
             console.log("Conectado a FarmaVoz");
           },
@@ -102,10 +125,10 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
               stopAllAudio();
             }
           },
-          onclose: () => setIsActive(false),
+          onclose: () => deactivate(),
           onerror: (e) => {
             console.error(e);
-            setIsActive(false);
+            deactivate();
           }
         }
       });
@@ -115,11 +138,13 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
       // Setup Mic streaming
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioCtx = new AudioContext({ sampleRate: 16000 });
+      micStreamRef.current = stream;
+      micContextRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
       
       processor.onaudioprocess = (e) => {
-        if (!isActive) return;
+        if (!isActiveRef.current) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const int16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
@@ -136,6 +161,8 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
 
     } catch (err) {
       console.error(err);
+      sessionRef.current?.close();
+      deactivate();
       setIsConnecting(false);
     }
   };

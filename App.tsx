@@ -76,8 +76,13 @@ const App: React.FC = () => {
   };
 
   const handleVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta búsqueda por voz. Por favor, escribe el nombre del medicamento.");
+      return;
+    }
     setIsVoiceActive(true);
-    const recognition = new (window as any).webkitSpeechRecognition();
+    const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
     recognition.onresult = (event: any) => {
       const voiceQuery = event.results[0][0].transcript;
@@ -86,6 +91,7 @@ const App: React.FC = () => {
       setIsVoiceActive(false);
     };
     recognition.onend = () => setIsVoiceActive(false);
+    recognition.onerror = () => setIsVoiceActive(false);
     recognition.start();
   };
 
@@ -237,7 +243,12 @@ const App: React.FC = () => {
       <PharmacyBottomSheet 
         pharmacy={selectedPharmacy} 
         onClose={() => setSelectedPharmacy(null)} 
-        onOpenGps={(p) => window.open(p.googleMapsUri, '_blank')}
+        onOpenGps={(p) => {
+          // Only open https links: the URI comes from model output and must not run scripts
+          if (/^https:\/\//i.test(p.googleMapsUri)) {
+            window.open(p.googleMapsUri, '_blank', 'noopener,noreferrer');
+          }
+        }}
       />
 
       {/* Loading overlay */}

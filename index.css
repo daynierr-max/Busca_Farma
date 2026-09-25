@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8fafc;
+}
+
+#root {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bottom-sheet {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom Leaflet overrides */
+.leaflet-control-attribution { display: none !important; }
+.leaflet-container { background: #f1f5f9; height: 100%; width: 100%; }
+.custom-div-icon { background: transparent; border: none; }
+
+/* Marker Animations */
+@keyframes marker-pulse {
+  0% { transform: scale(1.25) translateY(0); }
+  50% { transform: scale(1.35) translateY(-5px); }
+  100% { transform: scale(1.25) translateY(0); }
+}
+
+@keyframes marker-bounce-in {
+  0% { transform: scale(0.5) translateY(0); opacity: 0; }
+  70% { transform: scale(1.4) translateY(-15px); opacity: 1; }
+  100% { transform: scale(1.25) translateY(0); }
+}
+
+.marker-selected {
+  animation: marker-pulse 2s infinite ease-in-out;
+  transform-origin: bottom center;
+}
+
+.marker-bounce {
+  animation: marker-bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: bottom center;
+}

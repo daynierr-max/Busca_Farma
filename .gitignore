@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secretos locales de Cloudflare (GEMINI_API_KEY)
+.dev.vars
+.env
+.wrangler

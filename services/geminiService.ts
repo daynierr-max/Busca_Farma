@@ -1,8 +1,17 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
 import { Location, Pharmacy } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Las llamadas a Gemini se hacen en el servidor (functions/api/*):
+// la clave de API nunca llega al navegador.
+const postJson = async (url: string, body: unknown) => {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${url} respondió ${res.status}`);
+  return res.json();
+};
 
 /**
  * Intenta extraer coordenadas de una URL de Google Maps
@@ -23,26 +32,12 @@ const extractCoordsFromUri = (uri: string): { lat: number, lng: number } | null 
 
 export const findPharmaciesNearby = async (medication: string, location: Location): Promise<Pharmacy[]> => {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Busca farmacias cerca de mi ubicación actual que puedan tener stock de ${medication}. 
-                 Mi ubicación es: ${location.lat}, ${location.lng}. 
-                 Devuelve una lista de farmacias reales con sus nombres y direcciones.`,
-      config: {
-        tools: [{ googleMaps: {} }],
-        toolConfig: {
-          retrievalConfig: {
-            latLng: {
-              latitude: location.lat,
-              longitude: location.lng
-            }
-          }
-        }
-      },
+    const { chunks = [] } = await postJson("/api/pharmacies", {
+      medication,
+      lat: location.lat,
+      lng: location.lng,
     });
 
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    
     const pharmacies: Pharmacy[] = chunks.map((chunk: any, index: number) => {
       const mapsInfo = chunk.maps || {};
       const uri = mapsInfo.uri || "https://maps.google.com";
@@ -122,16 +117,8 @@ const getMockPharmacies = (location: Location): Pharmacy[] => {
 
 export const scanMedicationBox = async (base64Image: string): Promise<string> => {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          { text: "Identifica el nombre del medicamento en esta imagen. Devuelve ÚNICAMENTE el nombre del fármaco, sin texto extra." },
-          { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
-        ]
-      }
-    });
-    return response.text.trim();
+    const { name = "" } = await postJson("/api/scan", { image: base64Image });
+    return name.trim();
   } catch (error) {
     console.error("Error scanning box:", error);
     return "";

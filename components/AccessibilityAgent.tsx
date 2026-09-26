@@ -54,13 +54,19 @@ const AccessibilityAgent: React.FC<AccessibilityAgentProps> = ({ onSearch, pharm
     }
 
     setIsConnecting(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
+
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
 
     try {
+      // Token efímero emitido por el servidor (functions/api/live-token.ts):
+      // la clave real de Gemini nunca llega al navegador.
+      const tokenRes = await fetch('/api/live-token', { method: 'POST' });
+      if (!tokenRes.ok) throw new Error(`/api/live-token respondió ${tokenRes.status}`);
+      const { token } = await tokenRes.json();
+      const ai = new GoogleGenAI({ apiKey: token });
+
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
